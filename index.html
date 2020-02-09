@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <?php include 'getting_odds_values_sts.php';?>
+    <?php include 'getting_odds_values_forbet.php';?>
+    <?php include 'main.php';>
+    <?php include 'SportsEvent.php';?>
+    <?php if (array_key_exists('firstBtn', $_POST))
+    {
+        echo 'button works properly';
+    }?>
+    <button id="firstBtn">get odds data</button>
+</body>
+</html>

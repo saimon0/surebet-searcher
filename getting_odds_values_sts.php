@@ -182,7 +182,7 @@ function getSportsEventRows($jsonOdds, $allGameIdentificators, &$allSportsEvents
 }
 
 
-function retrieveSportsEventOdds(array $allSportsEventsSts, array &$allSportsEventsStsObj)
+function getSportsEventsSts(array $allSportsEventsSts, array &$allSportsEventsStsObjArray)
 {
     foreach ($allSportsEventsSts as $sportsEvent)
     {
@@ -195,7 +195,7 @@ function retrieveSportsEventOdds(array $allSportsEventsSts, array &$allSportsEve
             if (strcmp($element['otl'] , 'remis') == 0 )#&& strlen($element['it']) == 4)
             {
                 $sportsEventStsObj->sportsCategory = 'pilka_nozna';
-                array_push($allSportsEventsStsObj, $sportsEventStsObj);
+                array_push($allSportsEventsStsObjArray, $sportsEventStsObj);
             }
             if ($element['otl'] != 'nikt' && $element['otl'] != 'remis' && $element['otl'] != '1X' && $element['otl'] != 'X2' && $element['otl'] != '12')
             {
@@ -242,9 +242,89 @@ function retrieveSportsEventOdds(array $allSportsEventsSts, array &$allSportsEve
 
 
 
-
-
-function putSportsEventsToDataBase()
+function saveStsDataToFile(&$jsonOdds)
 {
-
+    $encodedStsOdds = json_encode($jsonOdds);
+    $fileName = "StsOdds.json";
+    file_put_contents($fileName, "");
+    if (file_put_contents($fileName, $encodedStsOdds))
+    {
+        echo "File *StsOdds.json* successfully saved\n\n";
+    }
 }
+
+
+
+function insertStsSportsEventInDatabase($sportsEventObj, mysqli $connection)
+{
+    $todaysDate = date('Y-m-d');
+    $currentTime = date('H:i:s');
+
+    $insertQuery = "INSERT INTO sts (sportsEventID, eventDateTime, addedToDBTime, sportsCategory, homeTeamName, awayTeamName, homeWinOddValue, awayWinOddValue, drawOddValue) VALUES ('$sportsEventObj->gameIdentificator', '$todaysDate', '$currentTime','$sportsEventObj->sportsCategory', '$sportsEventObj->homeTeam','$sportsEventObj->awayTeam','$sportsEventObj->homeWinOddValue','$sportsEventObj->awayWinOddValue','$sportsEventObj->drawOddValue')";
+
+    if($connection->query($insertQuery))
+    {
+        echo "Succcessfuly added row to *sts* table\n";
+    }
+    else
+    {
+        echo 'error - data was not inserted: ' . $connection->connect_error . "\n";
+    }
+}
+
+
+
+function updateStsTableInDatabase($allSportsEventsStsObjArray, mysqli $connect)
+{
+    foreach ($allSportsEventsStsObjArray as $element)
+    {
+        $getFromStsTable = "SELECT * FROM sts WHERE sportsEventID = '$element->gameIdentificator')";
+
+        $ifExistsResult = $connect->query($getFromStsTable);
+
+        if (!$ifExistsResult || mysqli_num_rows($ifExistsResult) != 0)
+        {
+            insertStsSportsEventInDatabase($element, $connect);
+        }
+    }
+
+    foreach ($allSportsEventsStsObjArray as $element)
+    {
+        if (strcmp($element->sportsCategory, 'Piłka nożna') == 0)
+        {
+            $updateStsTableQuery = "UPDATE sts SET homeWinOddValue = '$element->homeWinOddValue', awayWinOddValue = '$element->awayWinOddValue', drawOddValue = '$element->drawOddValue' WHERE sportsEventID = '$element->gameIdentificator'";
+            if ($connect->query($updateStsTableQuery))
+            {
+                echo "table *sts* was updated (soccer)\n";
+            }
+            else
+            {
+                echo "table *sts* was NOT updated (soccer)\n";
+            }
+        }
+        else if (strcmp($element->sportsCategory, 'Tenis') == 0)
+        {
+            $updateStsTableQuery = "UPDATE sts SET homeWinOddValue = '$element->homeWinOddValue', awayWinOddValue = '$element->awayWinOddValue' WHERE sportsEventID = '$element->gameIdentificator'";
+            if ($connect->query($updateStsTableQuery))
+            {
+                echo "table *sts* was updated (tenis)\n";
+            }
+            else
+            {
+                echo "table *sts* was NOT updated (tenis)\n";
+            }
+        }
+    }
+
+    $removeDuplicatesQuery = 'DELETE FROM sts using sts, sts s1 WHERE sts.id > s1.id and sts.sportsEventID = s1.sportsEventID';
+
+    if($connect->query($removeDuplicatesQuery))
+    {
+        echo "Successfully removed duplicates from *sts* table using *sportsEventID* column\n";
+    }
+    else
+    {
+        echo "error - couldnt remove duplicates from *sts* table using *sportsEventsID* column\n";
+    }
+}
+

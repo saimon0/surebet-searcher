@@ -9,6 +9,7 @@ function scrapDataFromForbetUrl($stsUrl, &$data, &$decodedJsonData, &$jsonOdds)
 }
 
 
+
 function getSportsEventsForbet(&$jsonOdds, &$sportsEventsIDsForbet)
 {
     $index = 0;
@@ -32,11 +33,10 @@ function getSportsEventsForbet(&$jsonOdds, &$sportsEventsIDsForbet)
         {
             #$temp = array();
             $temp = $elementSportsEvent['games'];
-            echo 'array games element number: ' . $index . "\n";
 
             foreach ($temp as $tempElement)
             {
-                if (array_key_exists('outcomes', $tempElement) and strcmp($tempElement['gameName'], '1X2') == 0)
+                if (array_key_exists('outcomes', $tempElement) and strcmp($tempElement['gameName'], '1X2') == 0 || strcmp($tempElement['gameName'], 'Wynik końcowy') == 0)
                 {
                     $tempOutcomes = $tempElement['outcomes'];
                     $elementIndex = 0;
@@ -59,17 +59,34 @@ function getSportsEventsForbet(&$jsonOdds, &$sportsEventsIDsForbet)
                     $elementIndex = 0;
                     array_push($tempArrayForSportsEventOutcomes, $tempOutcomes);
                 }
-                else
+                else if (strcmp($sportsEventObject->sportsCategory,'Tenis') == 0 and strcmp($tempElement['gameName'],'Zwycięzca') == 0)
                 {
-                    echo '\n*outcomes* key was not found\n';
+                    $tempOutcomes = $tempElement['outcomes'];
+                    $elementIndex = 0;
+                    foreach ($tempOutcomes as $outcomesElement)
+                    {
+                        if (strcmp($outcomesElement['outcomeName'], $sportsEventObject->homeTeam) == 0)
+                        {
+                            $sportsEventObject->homeWinOddValue = $outcomesElement['outcomeOdds'];
+                        }
+                        if (strcmp($outcomesElement['outcomeName'], $sportsEventObject->awayTeam) == 0)
+                        {
+                        $sportsEventObject->awayWinOddValue = $outcomesElement['outcomeOdds'];
+                        }
+                        $sportsEventObject->drawOddValue = 0;
+                    }
                 }
             }
             $temp = 0;
         }
-        array_push($sportsEventsIDsForbet, $sportsEventObject);
+        if (strcmp($elementSportsEvent['result'], '?-?') != 0 and $sportsEventObject->homeWinOddValue != NULL and $sportsEventObject->awayWinOddValue != NULL)
+        {
+            array_push($sportsEventsIDsForbet, $sportsEventObject);
+        }
         $index++;
     }
 }
+
 
 
 function saveForbetDataToFile(&$jsonOdds)
@@ -82,3 +99,80 @@ function saveForbetDataToFile(&$jsonOdds)
         echo "File *ForbetOdds.json* successfully saved\n\n";
     }
 }
+
+
+
+function insertForbetSportsEventInDatabase($sportsEventObj, mysqli $connection)
+{
+    $todaysDate = date('Y-m-d');
+    $currentTime = date('H:i:s');
+
+    $insertQuery = "INSERT INTO forbet (sportsEventID, eventDateTime, addedToDBTime, sportsCategory, homeTeamName, awayTeamName, homeWinOddValue, awayWinOddValue, drawOddValue) VALUES ('$sportsEventObj->gameIdentificator', '$todaysDate', '$currentTime','$sportsEventObj->sportsCategory', '$sportsEventObj->homeTeam','$sportsEventObj->awayTeam','$sportsEventObj->homeWinOddValue','$sportsEventObj->awayWinOddValue','$sportsEventObj->drawOddValue')";
+
+    if($connection->query($insertQuery))
+    {
+        echo "Succcessfuly added row to *forbet* table\n";
+    }
+    else
+    {
+        echo 'error - data was not inserted: ' . $connection->connect_error . "\n";
+    }
+}
+
+
+
+function updateForbetTableInDatabase($allSportsEventsForbetObjArray, mysqli $connect)
+{
+    foreach ($allSportsEventsForbetObjArray as $element)
+    {
+        $getFromForbetTable = "SELECT * FROM forbet WHERE sportsEventID = '$element->gameIdentificator')";
+
+        $ifExistsResult = $connect->query($getFromForbetTable);
+
+        if (!$ifExistsResult || mysqli_num_rows($ifExistsResult) != 0)
+        {
+            insertForbetSportsEventInDatabase($element, $connect);
+        }
+    }
+
+    foreach ($allSportsEventsForbetObjArray as $element)
+    {
+        if (strcmp($element->sportsCategory, 'Piłka nożna') == 0)
+        {
+            $updateForbetTableQuery = "UPDATE forbet SET homeWinOddValue = '$element->homeWinOddValue', awayWinOddValue = '$element->awayWinOddValue', drawOddValue = '$element->drawOddValue' WHERE sportsEventID = '$element->gameIdentificator'";
+            if ($connect->query($updateForbetTableQuery))
+            {
+                echo "table *forbet* was updated (soccer)\n";
+            }
+            else
+            {
+                echo "table *forbet* was NOT updated (soccer)\n";
+            }
+        }
+        else if (strcmp($element->sportsCategory, 'Tenis') == 0)
+        {
+            $updateForbetTableQuery = "UPDATE forbet SET homeWinOddValue = '$element->homeWinOddValue', awayWinOddValue = '$element->awayWinOddValue' WHERE sportsEventID = '$element->gameIdentificator'";
+            if ($connect->query($updateForbetTableQuery))
+            {
+                echo "table *forbet* was updated (tenis)\n";
+            }
+            else
+            {
+                echo "table *forbet* was NOT updated (tenis)\n";
+            }
+        }
+    }
+
+    $removeDuplicatesQuery = 'DELETE FROM forbet using forbet, forbet f2 WHERE forbet.id > f2.id and forbet.sportsEventID = f2.sportsEventID';
+
+    if($connect->query($removeDuplicatesQuery))
+    {
+        echo "Successfully removed duplicates from *forbet* table using *sportsEventID* column\n";
+    }
+    else
+    {
+        echo "error - couldnt remove duplicates from *forbet* table using *sportsEventsID* column\n";
+    }
+}
+
+

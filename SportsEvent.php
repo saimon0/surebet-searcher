@@ -7,9 +7,11 @@ class SportsEvent
     public $sportsCategory;
     public $homeTeam;
     public $awayTeam;
-    public $homeWinOddValue;
-    public $drawOddValue;
-    public $awayWinOddValue;
+    public $homeWinOddValue; # 1
+    public $drawOddValue; # X
+    public $awayWinOddValue; # 2
+    public $homeOrDrawOddValue; # 1X
+    public $awayOrDrawOddValue; # X2
     public $runningEventsDate;
 
     public function __construct()
