@@ -45,7 +45,6 @@ saveForbetDataToFile($jsonOddsForbet);
 
 $sportsEventObject = new SportsEvent();
 
-
 #getHomeDrawAwayWinOdds($sportsEventSts, $homeSportsTeamName, $awaySportsTeamName, $sportsEventObject);
 
 #print_r($sportsEventObject);
@@ -70,6 +69,7 @@ getSportsEventRows($jsonOddsSts, $allSportsEventsIdentificators, $allSportsEvent
 getSportsEventsSts($allSportsEventsSts, $allSportsEventsStsObjArray);
 
 getSportsEventsForbet($jsonOddsForbet, $allSportsEventsForbetObjArray);
+getOddsForSportsEventsForbet($jsonOddsForbet, $allSportsEventsForbetObjArray);
 
 echo "\nSize of allOtlSts (before filter): " . $sizeAllOtlStsBeforeFilter;
 echo "\nSize of allOtlSts (after filter): " . sizeof($allOtlSts);
@@ -89,14 +89,14 @@ echo "client version: " . $connection->client_version . "\n";
 
 #insertSportsEventInDatabase($allSportsEventsForbetObjArray[0], $connection);
 
-updateForbetTableInDatabase($allSportsEventsForbetObjArray, $connection);
-updateStsTableInDatabase($allSportsEventsStsObjArray, $connection);
+#updateForbetTableInDatabase($allSportsEventsForbetObjArray, $connection);
+#updateStsTableInDatabase($allSportsEventsStsObjArray, $connection);
 
-#print_r($allSportsEventsForbetObjArray);
+print_r($allSportsEventsForbetObjArray);
 #print_r($allSportsEventsStsObjArray);
 
-compareStsForbetOdds($allSportsEventsStsObjArray, $allSportsEventsForbetObjArray);
+#compareStsForbetOdds($allSportsEventsStsObjArray, $allSportsEventsForbetObjArray);
 
-echo "\nSize of forbet events:  " . sizeof($allSportsEventsForbetObjArray) . "\n";
+echo "\n\nSize of forbet events:  " . sizeof($allSportsEventsForbetObjArray) . "\n";
 echo 'size of sts events:  ' . sizeof($allSportsEventsStsObjArray) . "\n";
 

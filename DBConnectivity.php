@@ -3,7 +3,7 @@
 
 function connectWithDataBase()
 {
-    $connection = new mysqli('localhost:3306', 'root','root', 'sportsevents');
+    $connection = new mysqli('localhost', 'root','root', 'sportsevents');
     #$connection = mysqli_connect('localhost:3306','root','root','sportsevents');
     if ($connection)
     {
